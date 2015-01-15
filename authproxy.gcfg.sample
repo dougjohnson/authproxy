@@ -1,0 +1,29 @@
+[GitHub]
+authurl = https://github.com/login/oauth/authorize
+tokenurl = https://github.com/login/oauth/access_token
+apiurl = https://api.github.com
+client-id = aaaaaaaaaaaaaaaaaaaaaaaa
+client-secret = bbbbbbbbbbbbbbbbbbbbbbbbbb
+scope = user:email,read:org
+organization = Your-Github-Org
+
+[Session]
+authentication-key = 32-char-long-secret-key
+encryption-key = 32-char-long-secret-key
+max-age = 300
+
+[Server]
+bind = 0.0.0.0
+port = 80
+fqdn = auth.your.restricted.domain.com
+
+[ReverseProxy "site1.your.restricted.domain.com"]
+to = http://127.0.0.1:81
+identity-required
+
+[ReverseProxy "site2.your.restricted.domain.com"]
+to = http://127.0.0.1:82
+
+[IPWhiteList]
+ip = 95.172.74.39
+ip = 95.172.74
