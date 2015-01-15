@@ -33,8 +33,8 @@
                     included in headers |                     
                             |           |                     
             +-------+   +---v---+   +---v---+   +-------+     
-            |       |   |       |   |       |   |       |     
-            | Site1 |   | Site2 |   | Site3 |   | Site4 |     
-            |       |   |       |   |       |   |       |     
+            |       |   |       |   |       |   |       |    Sites running on ports inaccessible 
+            | Site1 |   | Site2 |   | Site3 |   | Site4 |    from public internet. Only allow
+            |       |   |       |   |       |   |       |    http ingress from authproxy machine.
             +-------+   +-------+   +-------+   +-------+     
 ```
