@@ -1,4 +1,4 @@
-package proxy
+package main
 
 import (
 	"crypto/rand"
@@ -21,28 +21,28 @@ import (
 )
 
 var (
-	conf    Config
+	conf    config
 	proxies map[string]*httputil.ReverseProxy
 	store   *sessions.CookieStore
 )
 
-const ApacheFormatPattern = "%s - - [%s] \"%s %d %d\" %.4f %s %s\n"
-
-type User struct {
+type user struct {
 	Login string
 	Name  string
 	Email string
 }
 
-type Org struct {
+type org struct {
 	Login string
 }
 
-func Handlers(c Config) *http.ServeMux {
+//Handlers creates a chain of middleware http handlers and
+//adds them to a mux for passing into http.ListenAndServe
+func Handlers(c config) *http.ServeMux {
 
 	conf = c
 	proxies = getProxies()
-	store = sessions.NewCookieStore([]byte(conf.Session.Authentication_key), []byte(conf.Session.Encryption_key))
+	store = sessions.NewCookieStore([]byte(conf.Session.AuthenticationKey), []byte(conf.Session.EncryptionKey))
 
 	mux := http.NewServeMux()
 
@@ -53,12 +53,12 @@ func Handlers(c Config) *http.ServeMux {
 
 	store.Options = &sessions.Options{
 		Domain:   r.ReplaceAllString(fqdn, ""),
-		MaxAge:   conf.Session.Max_age,
+		MaxAge:   conf.Session.MaxAge,
 		HttpOnly: true,
 	}
 
 	// register for storing in session
-	gob.Register(User{})
+	gob.Register(user{})
 
 	//OAuth2 handlers
 	oauthMiddleware := alice.New(context.ClearHandler, recoverHandler, loggingHandler)
@@ -99,9 +99,9 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "auth")
 	proxy := proxies[r.Host]
 	if _, ok := session.Values["user"]; ok {
-		r.Header["REMOTE_USER"] = []string{session.Values["user"].(User).Login}
-		r.Header["REMOTE_USER_FULL_NAME"] = []string{session.Values["user"].(User).Name}
-		r.Header["REMOTE_USER_EMAIL"] = []string{session.Values["user"].(User).Email}
+		r.Header["REMOTE_USER"] = []string{session.Values["user"].(user).Login}
+		r.Header["REMOTE_USER_FULL_NAME"] = []string{session.Values["user"].(user).Name}
+		r.Header["REMOTE_USER_EMAIL"] = []string{session.Values["user"].(user).Email}
 	}
 	proxy.ServeHTTP(w, r)
 }
@@ -124,7 +124,7 @@ func recoverHandler(next http.Handler) http.Handler {
 
 // Log the request, apache-style
 func loggingHandler(next http.Handler) http.Handler {
-	return &ApacheLoggingHandler{
+	return &apacheLoggingHandler{
 		handler: next,
 		out:     os.Stdout,
 	}
@@ -152,7 +152,7 @@ func whitelistHandler(next http.Handler) http.Handler {
 			if domain != r.Host {
 				continue
 			}
-			if value.Identity_required {
+			if value.IdentityRequired {
 				identityRequired = true
 				break
 			}
@@ -161,7 +161,7 @@ func whitelistHandler(next http.Handler) http.Handler {
 		if colon := strings.LastIndex(clientIP, ":"); colon != -1 {
 			clientIP = clientIP[:colon]
 		}
-		for _, ip := range conf.IPWhitelist.Ip {
+		for _, ip := range conf.IPWhitelist.IP {
 			trimmedClientIP := clientIP
 			if strings.Count(ip, ".") == 2 {
 				trimmedClientIP = clientIP[:strings.LastIndex(clientIP, ".")]
@@ -199,14 +199,14 @@ func orgHandler(next http.Handler) http.Handler {
 		if _, ok := session.Values["user"]; ok {
 			next.ServeHTTP(w, r)
 		} else {
-			var u User
+			var u user
 			err := callGitHubAPI(conf.GitHub.Apiurl+"/user", session.Values["access_token"].(string), &u, false)
 			if err != nil {
 				http.Error(w, "Problem retrieving user info from GitHub", 500)
 				return
 			}
 
-			var o []Org
+			var o []org
 			err = callGitHubAPI(conf.GitHub.Apiurl+"/user/orgs", session.Values["access_token"].(string), &o, true)
 			if err != nil {
 				http.Error(w, "Problem retrieving org info from GitHub", 500)
@@ -231,12 +231,12 @@ func orgHandler(next http.Handler) http.Handler {
 func identityHandler(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		session, _ := store.Get(r, "auth")
-		user := session.Values["user"].(User)
+		user := session.Values["user"].(user)
 		for domain, value := range conf.ReverseProxy {
 			if domain != r.Host {
 				continue
 			}
-			if !value.Identity_required {
+			if !value.IdentityRequired {
 				continue
 			}
 			if user.Name == "" || user.Email == "" {
@@ -253,12 +253,12 @@ func identityHandler(next http.Handler) http.Handler {
 func loginHandler(rw http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "auth")
 	if _, ok := session.Values["state"]; ok {
-		authUrl := conf.GitHub.Authurl +
-			"?client_id=" + url.QueryEscape(conf.GitHub.Client_id) +
+		authURL := conf.GitHub.Authurl +
+			"?client_id=" + url.QueryEscape(conf.GitHub.ClientID) +
 			"&redirect_uri=" + url.QueryEscape(fmt.Sprintf("http://%s/_callback", conf.Server.Fqdn)) +
 			"&scope=" + url.QueryEscape(conf.GitHub.Scope) +
 			"&state=" + url.QueryEscape(session.Values["state"].(string))
-		http.Redirect(rw, r, authUrl, http.StatusFound)
+		http.Redirect(rw, r, authURL, http.StatusFound)
 		return
 	}
 	http.Error(rw, "invalid state", 400)
@@ -297,7 +297,7 @@ func callbackHandler(rw http.ResponseWriter, r *http.Request) {
 
 // Exchanges Oauth2 "code" for "access token"
 func getAccessToken(code string) (string, error) {
-	resp, err := http.PostForm(conf.GitHub.Tokenurl, url.Values{"client_id": {conf.GitHub.Client_id}, "client_secret": {conf.GitHub.Client_secret}, "code": {code}, "redirect_uri": {"http://" + conf.Server.Fqdn + "/_callback"}})
+	resp, err := http.PostForm(conf.GitHub.Tokenurl, url.Values{"client_id": {conf.GitHub.ClientID}, "client_secret": {conf.GitHub.ClientSecret}, "code": {code}, "redirect_uri": {"http://" + conf.Server.Fqdn + "/_callback"}})
 	if err != nil {
 		return "", err
 	}

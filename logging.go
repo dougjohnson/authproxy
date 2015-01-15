@@ -1,4 +1,4 @@
-package proxy
+package main
 
 import (
 	"fmt"
@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-type ApacheLogRecord struct {
+const apacheFormatPattern = "%s - - [%s] \"%s %d %d\" %.4f %s %s\n"
+
+type apacheLogRecord struct {
 	http.ResponseWriter
 
 	ip                                string
@@ -19,41 +21,41 @@ type ApacheLogRecord struct {
 	elapsedTime                       time.Duration
 }
 
-func (r *ApacheLogRecord) Log(out io.Writer) {
+func (r *apacheLogRecord) log(out io.Writer) {
 	timeFormatted := r.time.Format("02/Jan/2006 17:04:05")
 	requestLine := fmt.Sprintf("%s %s %s", r.method, r.uri, r.protocol)
-	fmt.Fprintf(out, ApacheFormatPattern, r.ip, timeFormatted, requestLine, r.status, r.responseBytes,
+	fmt.Fprintf(out, apacheFormatPattern, r.ip, timeFormatted, requestLine, r.status, r.responseBytes,
 		r.elapsedTime.Seconds(), r.host, r.user)
 }
 
-func (r *ApacheLogRecord) Write(p []byte) (int, error) {
+func (r *apacheLogRecord) write(p []byte) (int, error) {
 	written, err := r.ResponseWriter.Write(p)
 	r.responseBytes += int64(written)
 	return written, err
 }
 
-func (r *ApacheLogRecord) WriteHeader(status int) {
+func (r *apacheLogRecord) writeHeader(status int) {
 	r.status = status
 	r.ResponseWriter.WriteHeader(status)
 }
 
-type ApacheLoggingHandler struct {
+type apacheLoggingHandler struct {
 	handler http.Handler
 	out     io.Writer
 }
 
-func (h *ApacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *apacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "auth")
-	user := "-"
+	username := "-"
 	if u, ok := session.Values["user"]; ok {
-		user = u.(User).Login
+		username = u.(user).Login
 	}
 	clientIP := r.RemoteAddr
 	if colon := strings.LastIndex(clientIP, ":"); colon != -1 {
 		clientIP = clientIP[:colon]
 	}
 
-	record := &ApacheLogRecord{
+	record := &apacheLogRecord{
 		ResponseWriter: rw,
 		ip:             clientIP,
 		time:           time.Time{},
@@ -61,7 +63,7 @@ func (h *ApacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 		uri:            r.RequestURI,
 		protocol:       r.Proto,
 		host:           r.Host,
-		user:           user,
+		user:           username,
 		status:         http.StatusOK,
 		elapsedTime:    time.Duration(0),
 	}
@@ -73,5 +75,5 @@ func (h *ApacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	record.time = finishTime.UTC()
 	record.elapsedTime = finishTime.Sub(startTime)
 
-	record.Log(h.out)
+	record.log(h.out)
 }
