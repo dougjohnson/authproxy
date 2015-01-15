@@ -10,31 +10,31 @@
 
 
 
-          User @ Home                         User @ Office   
-              or                                    +         
-        Identity Required                           |         
-              +                               (Whitelisted IP)
-              |                                     |         
-              |                                     |         
-              |         +-----------------+         |         
-              |         |                 |         |         
-              +-----------+   Auth        |         |         
-                        | |   Proxy     +-----------+         
-                        | | +--+        | |                   
-                        +-----------------+                   
-                          | |  |        |                     
-            +----------+  | |  |        |                     
-            |          <--+ |  |        |                     
-            |  GitHub  |    |  |        |                     
-            |          +----+  |        |                     
-            +----------+       |        |                     
-                            +--+        |                     
-                      GitHub Profile    |                     
-                    included in headers |                     
-                            |           |                     
-            +-------+   +---v---+   +---v---+   +-------+     
-            |       |   |       |   |       |   |       |    Sites running on ports inaccessible 
-            | Site1 |   | Site2 |   | Site3 |   | Site4 |    from public internet. Only allow
-            |       |   |       |   |       |   |       |    http ingress from authproxy machine.
-            +-------+   +-------+   +-------+   +-------+     
+        User @ Home                         User @ Office   
+            or                                    +         
+      Identity Required                           |         
+            +                               (Whitelisted IP)
+            |                                     |         
+            |                                     |         
+            |         +-----------------+         |         
+            |         |                 |         |         
+            +-----------+   Auth        |         |         
+                      | |   Proxy     +-----------+         
+                      | | +--+        | |                   
+                      +-----------------+                   
+                        | |  |        |                     
+          +----------+  | |  |        |                     
+          |          <--+ |  |        |                     
+          |  GitHub  |    |  |        |                     
+          |          +----+  |        |                     
+          +----------+       |        |                     
+                          +--+        |                     
+                    GitHub Profile    |                     
+                  included in headers |                     
+                          |           |                     
+          +-------+   +---v---+   +---v---+   +-------+     
+          |       |   |       |   |       |   |       |    Sites running on ports inaccessible 
+          | Site1 |   | Site2 |   | Site3 |   | Site4 |    from public internet. Only allow
+          |       |   |       |   |       |   |       |    http ingress from authproxy machine.
+          +-------+   +-------+   +-------+   +-------+     
 ```
