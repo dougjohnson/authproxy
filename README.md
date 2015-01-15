@@ -149,9 +149,7 @@ sudo ./authproxy
 
 It will log to STDOUT, so in production you'll want to start authproxy as a daemon, directing all output to a logfile for periodic rotation:
 ```bash
-sudo -i
-cd $GOPATH/src/github.com/dougjohnson/authproxy
-setsid ./authproxy >/var/log/authproxy 2>&1 < /dev/null &
+sudo -b sh -c "setsid ./authproxy >/var/log/authproxy 2>&1 < /dev/null"
 ```
 
 Start an http server of some sort at the location specified under `[ReverseProxy "site1.internal.laughinghyena.com"]` in your config file.
