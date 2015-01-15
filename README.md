@@ -12,9 +12,9 @@
 You'll find this useful if you:
 * Maintain a Github Organization
 * Host a number of sites that you only want to be accessible from trusted locations
-* Need team members to have access from any location
+* Need team members to have secure access to those sites from any location
 * Would rather not worry about authentication and like the idea of GitHub powered SSO
-* Would like to retrieve authenticated user details from trusted HTTP Request Headers
+* Might like to retrieve authenticated user details from trusted HTTP Request Headers
 * Like the idea of running a single highly performant binary to secure everything
 
 At a high level, it works like this:
@@ -51,9 +51,10 @@ At a high level, it works like this:
 
 ## Get started
 ### Build the binary
-Install [golang](https://golang.org/doc/install)
-Set up your [workspace](https://golang.org/doc/code.html#Workspaces)
-Set your [GOPATH](https://golang.org/doc/code.html#GOPATH) environment variable
+* Install [golang](https://golang.org/doc/install)
+* Set up your [workspace](https://golang.org/doc/code.html#Workspaces)
+* Set your [GOPATH](https://golang.org/doc/code.html#GOPATH) environment variable
+
 Clone this repository
 ```bash
 mkdir -p $GOPATH/src/github.com/dougjohnson
@@ -79,7 +80,7 @@ go build
 ### Set up DNS
 All your restricted sites will be accessible via subdomains. For the purposes of this guide, we'll assume you own the domain `laughinghyena.com` and you want all your restricted sites to be accessible under `*.internal.laughinghyena.com`. 
 
-Set up DNS so that `*.internal.laughinghyena.com` resolves to the IP address of the box where your authproxy is running. Just make entries in your local hosts file for testing purposes.
+Set up DNS so that `*.internal.laughinghyena.com` resolves to the IP address of the box where your authproxy is running. You can make entries in your local hosts file for testing purposes.
 
 ### Set up your config file
 A sample config file is provided in this repo. Use it to create your own `authproxy.gcfg` file.
@@ -105,8 +106,7 @@ authentication-key = 32-char-long-secret-key
 encryption-key = 32-char-long-secret-key
 max-age = 300
 ```
-Generate a random 32-char long key for both the above values
-Users will be transparently reauthenticated every 300 seconds. Change this if you like.
+Generate a random 32-char long key for both the above values. Users will be transparently reauthenticated every 300 seconds. Change this if you like.
 
 ```
 [Server]
@@ -123,7 +123,7 @@ identity-required
 ```
 You can have as many ReverseProxy blocks as you like, one for each restricted site you want to protect. The `to` value should be set to any url that only allows http ingress from the authproxy box.
 
-If you want to enforce that users have filled out some basic profile information in GitHub and to have that data passed through to your protected site in custom HTTP request headers, make sure `identity-required` is present. All HTTP requests to your protected site will then include these HTTP headers with values which can be used to identify your user:
+If you want to force users to fill out some basic profile information in GitHub and to have that data passed through to your protected site in custom HTTP request headers, make sure `identity-required` is present. All HTTP requests to your protected site will then include these HTTP headers with values which can be used to identify your user:
 ```
 REMOTE_USER
 REMOTE_USER_FULL_NAME
@@ -147,14 +147,14 @@ cd $GOPATH/src/github.com/dougjohnson/authproxy
 sudo ./authproxy
 ```
 
-It will log to STDOUT, so in production you'll want to direct output to a logfile for periodic rotation:
+It will log to STDOUT, so in production you'll want to start authproxy as a daemon, directing all output to a logfile for periodic rotation:
 ```bash
 sudo -i
 cd $GOPATH/src/github.com/dougjohnson/authproxy
 setsid ./authproxy >/var/log/authproxy 2>&1 < /dev/null &
 ```
 
-Start an http server of some sort at the location specified by `site1.internal.laughinghyena.com` in your config file.
+Start an http server of some sort at the location specified under `[ReverseProxy "site1.internal.laughinghyena.com"]` in your config file.
 
 Visit `http://site1.internal.laughinghyena.com` and watch as you are authenticated via GitHub!
 
