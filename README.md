@@ -161,9 +161,9 @@ It will log to STDOUT, so in production you'll want to start authproxy as a daem
 sudo -b sh -c "setsid ./authproxy >/var/log/authproxy 2>&1 < /dev/null"
 ```
 
-Start an http server of some sort at the location specified under `[ReverseProxy "site1.internal.laughinghyena.com"]` in your config file.
+Make sure an http server of some sort is running at the location specified under `[ReverseProxy "site1.internal.laughinghyena.com"]` in your config file.
 
-Visit `http://site1.internal.laughinghyena.com` and relax as you are authenticated via GitHub!
+Visit `http://site1.internal.laughinghyena.com` and rejoice as you are authenticated via GitHub!
 
 ## HTTPS support
 For HTTPS support, run your authproxy on a firewalled port behind nginx and use nginx to proxy all requests on port 80 and 443 to your authproxy.
