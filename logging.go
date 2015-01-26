@@ -51,8 +51,8 @@ func (h *apacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 		username = u.(user).Login
 	}
 	clientIP := r.RemoteAddr
-	if len(r.Header["X-REAL-IP"]) > 0 {
-		clientIP = r.Header["X-REAL-IP"][0]
+	if len(r.Header.Get("X-REAL-IP") > 0 {
+		clientIP = r.Header.Get("X-REAL-IP")
 	}
 	if colon := strings.LastIndex(clientIP, ":"); colon != -1 {
 		clientIP = clientIP[:colon]

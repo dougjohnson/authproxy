@@ -146,8 +146,8 @@ func targetHandler(next http.Handler) http.Handler {
 func whitelistHandler(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		clientIP := r.RemoteAddr
-		if len(r.Header["X-REAL-IP"]) > 0 {
-			clientIP = r.Header["X-REAL-IP"][0]
+		if len(r.Header.Get("X-REAL-IP") > 0 {
+			clientIP = r.Header.Get("X-REAL-IP")
 		}
 
 		identityRequired := false
