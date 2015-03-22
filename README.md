@@ -51,30 +51,24 @@ At a high level, it works like this:
 
 ## Get started
 ### Build the binary
-* Install [golang](https://golang.org/doc/install)
-* Set up your [workspace](https://golang.org/doc/code.html#Workspaces)
-* Set your [GOPATH](https://golang.org/doc/code.html#GOPATH) environment variable
+* Install [docker](http://docker.io)
 
 Clone this repository
 ```bash
-mkdir -p $GOPATH/src/github.com/dougjohnson
-cd $GOPATH/src/github.com/dougjohnson
 git clone git@github.com:dougjohnson/authproxy.git
 ```
-Install dependencies
+Build an authproxy docker image
 ```bash
-cd $GOPATH/src/github.com/dougjohnson/authproxy
-go get
+cd authproxy
+./init.sh
 ```
 Run the tests
 ```bash
-cd $GOPATH/src/github.com/dougjohnson/authproxy
-go test
+./test.sh
 ```
-Build the binary
+Build the binary (for 64bit linux)
 ```bash
-cd $GOPATH/src/github.com/dougjohnson/authproxy
-go build
+./build.sh
 ```
 
 ### Set up DNS
