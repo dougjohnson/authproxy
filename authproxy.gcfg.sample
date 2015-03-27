@@ -16,6 +16,7 @@ max-age = 300
 bind = 0.0.0.0
 port = 80
 fqdn = auth.your.restricted.domain.com
+loglevel = info
 
 [ReverseProxy "site1.your.restricted.domain.com"]
 to = http://127.0.0.1:81

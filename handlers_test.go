@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
+	log "github.com/dougjohnson/logrus"
 	"net/http"
 	"net/http/cookiejar"
 	"strings"
@@ -25,11 +25,14 @@ var proxyPort = 9060
 
 const githubUserFullProfileJSON = `{"login":"test_user","name":"Test User","email":"test_user@test.com"}`
 
+const githubUserEmailJSON = `[{"email":"test_user@test.com","verified":true,"primary":true},{"email":"test_user2@test.com","verified":true,"primary":false}]`
+
 const githubUserEmptyProfileJSON = `{"login":"test_user","name":"","email":""}`
 
 const githubOrgJSON = `[{"login":"TestOrg"}]`
 
 func init() {
+  log.SetLevel(log.DebugLevel)
 	startDummyGitHub(githubUserEmptyProfileJSON, 9049)
 	startDummyGitHub(githubUserFullProfileJSON, 9050)
 	startDummyBackend()
@@ -271,6 +274,14 @@ func startDummyGitHub(userJSON string, port int) {
 
 		fmt.Fprint(w, githubOrgJSON)
 	})
+	mux.HandleFunc("/user/emails", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header["Authorization"][0] != "token test_token" {
+			http.Error(w, "Invalid token", 401)
+			return
+		}
+
+		fmt.Fprint(w, githubUserEmailJSON)
+	})
 
 	go http.ListenAndServe(fmt.Sprintf("127.0.0.1:%d", port), mux)
 }
@@ -354,6 +365,7 @@ max-age = 60
 bind = 127.0.0.1
 port = 9000
 fqdn = auth.lvh.me:9000
+loglevel = debug
 
 [ReverseProxy "backend.lvh.me:9000"]
 to = http://127.0.0.1:9051

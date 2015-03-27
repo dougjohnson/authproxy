@@ -1,16 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"io"
 	"net/http"
 	"strings"
+  "fmt"
 	"time"
+  "math"
+
+  log "github.com/dougjohnson/logrus"
 )
 
 const apacheFormatPattern = "%s - - [%s] \"%s %d %d\" %.4f %s %s\n"
 
-type apacheLogRecord struct {
+type authproxyLogRecord struct {
 	http.ResponseWriter
 
 	ip                                string
@@ -21,30 +23,37 @@ type apacheLogRecord struct {
 	elapsedTime                       time.Duration
 }
 
-func (r *apacheLogRecord) log(out io.Writer) {
-	timeFormatted := r.time.Format("02/Jan/2006 17:04:05")
+func (r *authproxyLogRecord) log() {
 	requestLine := fmt.Sprintf("%s %s %s", r.method, r.uri, r.protocol)
-	fmt.Fprintf(out, apacheFormatPattern, r.ip, timeFormatted, requestLine, r.status, r.responseBytes,
-		r.elapsedTime.Seconds(), r.host, r.user)
+  log.WithFields(log.Fields{
+    "method": r.method,
+    "uri": r.uri,
+    "protocol": r.protocol,
+    "ip": r.ip,
+    "status": r.status,
+    "responseBytes": r.responseBytes,
+    "elapsedMillis": math.Floor(r.elapsedTime.Seconds()*1000 + 0.5),
+    "user": r.user,
+    "host": r.host,
+  }).Info(requestLine)
 }
 
-func (r *apacheLogRecord) write(p []byte) (int, error) {
+func (r *authproxyLogRecord) write(p []byte) (int, error) {
 	written, err := r.ResponseWriter.Write(p)
 	r.responseBytes += int64(written)
 	return written, err
 }
 
-func (r *apacheLogRecord) writeHeader(status int) {
-	r.status = status
-	r.ResponseWriter.WriteHeader(status)
+func (r *authproxyLogRecord) WriteHeader(status int) {
+  r.status = status
+  r.ResponseWriter.WriteHeader(status)
 }
 
-type apacheLoggingHandler struct {
+type authproxyLoggingHandler struct {
 	handler http.Handler
-	out     io.Writer
 }
 
-func (h *apacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (h *authproxyLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "auth")
 	username := "-"
 	if u, ok := session.Values["user"]; ok {
@@ -58,7 +67,7 @@ func (h *apacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 		clientIP = clientIP[:colon]
 	}
 
-	record := &apacheLogRecord{
+	record := &authproxyLogRecord{
 		ResponseWriter: rw,
 		ip:             clientIP,
 		time:           time.Time{},
@@ -78,5 +87,5 @@ func (h *apacheLoggingHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	record.time = finishTime.UTC()
 	record.elapsedTime = finishTime.Sub(startTime)
 
-	record.log(h.out)
+	record.log()
 }

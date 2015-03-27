@@ -24,6 +24,7 @@ type config struct {
 		Bind string `gcfg:"bind"`
 		Port int    `gcfg:"port"`
 		Fqdn string `gcfg:"fqdn"`
+    LogLevel string `gcfg:"loglevel"`
 	}
 	ReverseProxy map[string]*struct {
 		To               []string `gcfg:"to"`
@@ -40,7 +41,10 @@ func getConfig() config {
 
 	err := gcfg.ReadFileInto(&conf, "authproxy.gcfg")
 	if err != nil {
-		log.Fatalf("Problem loading config file: %+v\n", err)
+    err2 := gcfg.ReadFileInto(&conf, "/etc/authproxy/authproxy.gcfg")
+    if err2 != nil {
+		  log.Fatalf("Problem loading config file: %+v\n", err)
+    }
 	}
 
 	return conf
