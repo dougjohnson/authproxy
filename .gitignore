@@ -1,3 +1,4 @@
 authproxy
 authproxy.gcfg
+ansible/roles/authproxy/files/authproxy
 *.swp
