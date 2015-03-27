@@ -100,7 +100,9 @@ The default configuration will enforce https access to your private sites. The a
 ### [Register an application](https://github.com/settings/profile) in Github under your organization
 Make a note of the client-id and client-secret. You should set the callback_url to the ```/_callback``` path of a wildcarded subdomain, eg:
 
-```https://auth.internal.laughinghyena.com/_callback```
+```
+https://auth.internal.laughinghyena.com/_callback
+```
 
 In the above case, auth.internal.laughinghyena.com will be used later when configuring your authproxy (see fqdn)
 
