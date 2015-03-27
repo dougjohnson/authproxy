@@ -147,7 +147,7 @@ Any sites that are set with ```identity_required: true``` will force authenticat
 
 A range of IP addresses can be specified by leaving off the last number of an IP address as shown.
 
-All requests that have been authenticated via GitHub will have the following additional HTTP Headers added to the request for use by your downstream private site for authentication purposes  f necessary:
+All requests that have been authenticated via GitHub will have the following additional HTTP Headers added to the request for use by your downstream private site for authentication purposes  if necessary:
 
 ```
 REMOTE_USER
@@ -168,6 +168,8 @@ easy_install ansible
 ```
 
 Access to any private sites listed in the config should now be restricted to members of your GitHub organization, unless they are accessing from a whitelisted IP address.
+
+Enjoy!
 
 ## Contributing
 Contributions are welcome! Fork it, make your improvements, write some tests and submit a pull request.
