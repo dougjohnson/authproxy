@@ -115,7 +115,14 @@ All configurations are in the ansible directory. You'll need to perform the foll
 
 3. Edit ```ansible/roles/authproxy/vars/main.yml```  and paste in your github details and your fqdn (eg auth.internal.laughinghyena.com)
 
-4. Edit the authproxy section of ```ansible/main.yml```:
+4. Use ```ansible-vault``` to encrypt the files created in steps 2 & 3
+
+```
+ansible-vault encrypt ansible/roles/ssl-certs/vars/main.yml
+ansible-vault encrypt ansible/roles/authproxy/vars/main.yml
+```
+
+5. Edit the authproxy section of ```ansible/main.yml```:
 
 ```yml
   - role: authproxy
