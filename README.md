@@ -12,7 +12,7 @@
 You'll find this useful if you:
 * Maintain a Github Organization
 * Host a number of sites that you only want to be accessible from trusted locations
-* Need team members to have secure access to those sites from any location
+* Need your team members to have secure access to those sites from any location
 * Would rather not worry about authentication and like the idea of GitHub powered SSO
 * Might like to retrieve authenticated user details from trusted HTTP Request Headers
 * Like the idea of running a single highly performant binary to secure everything
@@ -50,128 +50,113 @@ At a high level, it works like this:
 ```
 
 ## Get started
-### Build the binary
-* Install [docker](http://docker.io)
 
-Clone this repository
+The authproxy is written in golang and needs to be compiled in order for you to deploy it.
+Fortunately, through the power of [docker](http://docker.io), you can change it, compile it and run tests against it without installing golang on your machine.
+
+You will, however need docker (which is a good thing):
+
+1. Install [docker](http://docker.io). If on a mac or windows, use [boot2docker](http://boot2docker.io/).
+
+2. Clone this repository
 ```bash
 git clone git@github.com:dougjohnson/authproxy.git
 ```
-Build an authproxy docker image
+
+3. Build an authproxy docker image
 ```bash
 cd authproxy
 ./init.sh
 ```
-Run the tests
+
+4. Run the tests
 ```bash
 ./test.sh
 ```
-Build the binary (for 64bit linux)
+
+5. Build the binary (for 64bit linux)
 ```bash
 ./build.sh
 ```
 
-### Set up DNS
-All your restricted sites will be accessible via subdomains.
-For the purposes of this guide, we'll assume you own the domain `laughinghyena.com` and you want all your restricted sites to be accessible under `*.internal.laughinghyena.com`. 
+The above steps will create a binary which can later be deployed using ansible. Firstly though, you have some configuration to do...
 
-Set up DNS so that `*.internal.laughinghyena.com` resolves to the IP address of the box where your authproxy is running.
+### Provision yourself an Ubuntu box
+
+This guide has been tested to work with Ubuntu 14.04. Provision a box with a public ip address in your favourite cloud provider. You'll need ssh access to that machine for ansible to work.
+
+Restrict http ingress to your private sites / applications so that they can only be accessed from this newly provisioned box - not from the wider internet.
+
+### Set up DNS
+All your private sites will be accessible via subdomains.
+For the purposes of this guide, we'll assume you own the domain `laughinghyena.com` and you want all your private sites to be accessible under `*.internal.laughinghyena.com`. 
+
+Set up DNS so that `*.internal.laughinghyena.com` resolves to the IP address of the box where your authproxy will be running.
 You can make entries in your local hosts file for testing purposes.
 
-### Set up your config file
-A sample config file is provided in this repo. Use it to create your own `authproxy.gcfg` file.
-It is split into sections:
+### Acquire a wildcard ssl certificate for your domain (eg *.internal.laughinghyena.com)
+The default configuration will enforce https access to your private sites. The authproxy will offload ssl prior to proxying requests to your private sites. You'll need the wildcard certificate and the private key used to sign the certificate signing request when configuring the proxy.
 
-```
-[GitHub]
-authurl = https://github.com/login/oauth/authorize
-tokenurl = https://github.com/login/oauth/access_token
-apiurl = https://api.github.com
-client-id = aaaaaaaaaaaaaaaaaaaaaaaa
-client-secret = bbbbbbbbbbbbbbbbbbbbbbbbbb
-scope = user:email,read:org
-organization = Your-Github-Org
-```
-[Register an application](https://github.com/settings/profile) in Github under your organization and copy in the client-id and client-secret.
-Use `http://auth.internal.laughinghyena.com/_callback` as the Authorization callback URL.
-Set the organization to the name of your Github organization.
-Everything else should be left as is.
+### [Register an application](https://github.com/settings/profile) in Github under your organization
+Make a note of the client-id and client-secret. You should set the callback_url to the ```/_callback``` path of a wildcarded subdomain, eg:
+```https://auth.internal.laughinghyena.com/_callback```
+In the above case, auth.internal.laughinghyena.com will be used later when configuring your authproxy (see fqdn)
 
-```
-[Session]
-authentication-key = 32-char-long-secret-key
-encryption-key = 32-char-long-secret-key
-max-age = 300
-```
-Generate a random 32-char long key for both the above values.
-Users will be transparently reauthenticated every 300 seconds.
-Change this if you like.
+### Configure your authproxy
+All configurations are in the ansible directory. You'll need to perform the following steps
 
-```
-[Server]
-bind = 0.0.0.0
-port = 80
-fqdn = auth.internal.laughinghyena.com
-```
-Set fqdn to `auth.internal.laughinghyena.com`.
-This should match the domain used in GitHub when you set up your Authorization callback URL.
+1. Edit ```ansible/inventory/hosts``` and add a line with the ip address of your newly provisioned proxy box. Include the path to the key that can be used to ssh to that box.
 
-```
-[ReverseProxy "site1.internal.laughinghyena.com"]
-to = http://127.0.0.1:81
-identity-required
-```
-You can have as many ReverseProxy blocks as you like, one for each restricted site you want to protect.
-The `to` value should be set to any url that only allows http ingress from the authproxy box.
+2. Edit ```ansible/roles/ssl-certs/vars/main.yml``` and paste in your wildcard certificate and key. *The indentation is important*.
 
-If you want to force users to fill out some basic profile information in GitHub and to have that data passed through to your protected site in custom HTTP request headers, make sure `identity-required` is present.
-All HTTP requests to your protected site will then include these HTTP headers with values which can be used to identify your user:
+3. Edit ```ansible/roles/authproxy/vars/main.yml```  and paste in your github details and your fqdn (eg auth.internal.laughinghyena.com)
+
+4. Edit the authproxy section of ```ansible/main.yml```:
+
+```yml
+  - role: authproxy
+    reverse_proxies:
+    - domain: site1.internal.laughinghyena.com
+      to: http://127.0.0.1:8081
+    - domain: site2.internal.laughinghyena.com
+      to: http://127.0.0.1:8082
+    - domain: site3.internal.laughinghyena.com
+      to: http://127.0.0.1:8083
+      identity_required: true
+    whitelisted_ips:
+    - ip: 212.111.111.1
+      description: office1
+    - ip: 212.111.111.2
+      description: office2
+    - ip: 212.111.111
+      description: all offices
+```
+
+Any sites that are set with ```identity_required: true``` will force authentication via GitHub irrespective of whether the request comes from a whitelisted IP.
+
+A range of IP addresses can be specified by leaving off the last number of an IP address as shown.
+
+All requests that have been authenticated via GitHub will have the following additional HTTP Headers added to the request for use by your downstream private site for authentication purposes  f necessary:
+
 ```
 REMOTE_USER
 REMOTE_USER_FULL_NAME
 REMOTE_USER_EMAIL
 ```
 
+### Install ansible locally:
+assuming you have python installed...
 ```
-[IPWhiteList]
-ip = 95.172.74.39
-ip = 95.172.74
-```
-A range of IP addresses can be specified by leaving off the last number of an IP address as shown.
-Whitelisting an IP address means GitHub authentication is bypassed for all access from that IP.
-
-**Note:** if the protected site has been configured with `identity-required`, access will only be permitted if the necessary values are present in the user's GitHub profile and they belong to your GitHub organization, irrespective of whether they are accessing your site from a whitelisted IP.
-
-### Start the proxy
-Make sure the `authproxy.gcfg` file is in the same location as your binary.
-Start your proxy with:
-```bash
-cd $GOPATH/src/github.com/dougjohnson/authproxy
-sudo ./authproxy
+easy_install ansible
 ```
 
-It will log to STDOUT, so in production you'll want to start authproxy as a daemon, directing all output to a logfile for periodic rotation:
-```bash
-sudo -b sh -c "setsid ./authproxy >/var/log/authproxy 2>&1 < /dev/null"
+### Use ansible to deploy your authproxy:
+
+```
+./deploy.sh
 ```
 
-Make sure an http server of some sort is running at the location specified under `[ReverseProxy "site1.internal.laughinghyena.com"]` in your config file.
-
-Visit `http://site1.internal.laughinghyena.com` and rejoice as you are authenticated via GitHub!
-
-## HTTPS support
-For HTTPS support, run your authproxy on a firewalled port behind nginx and use nginx to proxy all requests on port 80 and 443 to your authproxy.
-Make sure the necessary request headers are proxied appropriately by nginx by using a nginx.conf server section like this:
-```
-coming soon...
-```
-and an authproxy.gcfg Server section like this:
-```
-[Server]
-bind = 127.0.0.1
-port = 8080
-fqdn = auth.internal.laughinghyena.com
-```
+Access to any private sites listed in the config should now be restricted to members of your GitHub organization, unless they are accessing from a whitelisted IP address.
 
 ## Contributing
 Contributions are welcome! Fork it, make your improvements, write some tests and submit a pull request.
