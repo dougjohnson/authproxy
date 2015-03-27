@@ -1,0 +1,16 @@
+---
+ - name: Ensure certs directory exits
+   file:
+     state: directory
+     path: /etc/nginx/certs
+     mode: 0700
+
+ - name: Upload nginx server private key
+   copy: 
+     content: "{{ ssl_certs_privkey }}"
+     dest: "{{ ssl_certs_privkey_path }}"
+
+ - name: Upload nginx server cert
+   copy: 
+     content: "{{ ssl_certs_cert }}"
+     dest: "{{ ssl_certs_cert_path }}"
