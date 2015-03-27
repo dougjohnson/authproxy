@@ -1,0 +1,34 @@
+#{{ ansible_managed }}
+[GitHub]
+authurl = https://github.com/login/oauth/authorize
+tokenurl = https://github.com/login/oauth/access_token
+apiurl = https://api.github.com
+client-id = {{ github_client_id }}
+client-secret = {{ github_client_secret }}
+scope = user:email,read:org
+organization = {{ github_organization }}
+
+[Session]
+authentication-key = {{ lookup('password', '/etc/authproxy/authentication_key length=32 chars=ascii_letters,digits') }}
+encryption-key = {{ lookup('password', '/etc/authproxy/encryption_key length=32 chars=ascii_letters,digits') }}
+max-age = 1500
+
+[Server]
+bind = 127.0.0.1
+port = 7000
+fqdn = {{ fqdn }}
+loglevel = info
+
+{% for v in reverse_proxies %}
+[ReverseProxy "{{ v.domain }}"]
+to = {{ v.to }}
+{% if v.identity_required is defined and v.identity_required %}
+identity-required
+{% endif %}
+
+{% endfor %}
+
+[IPWhiteList]
+{% for v in whitelisted_ips %}
+ip = {{ v.ip }} # {{ v.description }}
+{% endfor %}

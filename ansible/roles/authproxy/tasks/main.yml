@@ -1,0 +1,40 @@
+---
+- name: ensure authproxy config dir exists
+  file:
+    state: directory
+    path: /etc/authproxy
+    mode: 0700
+
+- name: ensure authproxy error html dir exists
+  file:
+    state: directory
+    path: /var/authproxy-www
+    mode: 0755
+
+- name: upload authproxy error page
+  copy:
+    dest: /var/authproxy-www/50x.html
+    src: 50x.html
+    mode: 0644
+
+- name: generate authproxy config from template
+  template:
+    src: authproxy.gcfg.j2
+    dest: /etc/authproxy/authproxy.gcfg
+    mode: 0600
+
+- name: deploy authproxy binary
+  copy:
+    dest: /usr/local/bin/authproxy
+    src: authproxy
+    mode: 0700
+
+- name: upload authproxy supervisord config
+  copy:
+    dest: /etc/supervisor/conf.d/authproxy.conf
+    src: authproxy_supervisor.conf
+
+- name: supervisord should restart authproxy
+  supervisorctl:
+    name: authproxy
+    state: restarted
