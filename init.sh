@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 echo "-- building authproxy container"
 docker images | grep authproxy | awk '{print $3'} | xargs docker rmi
 docker build -t authproxy .
