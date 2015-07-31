@@ -60,7 +60,7 @@ You will, however need docker (which is a good thing):
 
 2. Clone this repository
 ```bash
-git clone git@github.com:dougjohnson/authproxy.git
+git clone https://github.com/dougjohnson/authproxy.git
 ```
 
 3. Build an authproxy docker image
