@@ -3,7 +3,7 @@
   file:
     state: directory
     path: /etc/authproxy
-    mode: 0700
+    mode: 0755
 
 - name: ensure authproxy error html dir exists
   file:
