@@ -1,4 +1,4 @@
-[production]
+[prod]
 # add a line like this with the ip address of your freshly provisioned ubuntu 14.04 box:
 
 # nn.nn.nn.nn ansible_connection=ssh ansible_ssh_user=ubuntu ansible_sudo=true ansible_ssh_private_key_file=/tmp/mykey
