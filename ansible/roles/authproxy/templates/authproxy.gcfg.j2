@@ -9,8 +9,8 @@ scope = user:email,read:org
 organization = {{ github_organization }}
 
 [Session]
-authentication-key = {{ lookup('password', '/etc/authproxy/authentication_key length=32 chars=ascii_letters,digits') }}
-encryption-key = {{ lookup('password', '/etc/authproxy/encryption_key length=32 chars=ascii_letters,digits') }}
+authentication-key = {{ lookup('password', '/tmp/authproxy/authentication_key length=32 chars=ascii_letters,digits') }}
+encryption-key = {{ lookup('password', '/tmp/authproxy/encryption_key length=32 chars=ascii_letters,digits') }}
 max-age = 1500
 
 [Server]
